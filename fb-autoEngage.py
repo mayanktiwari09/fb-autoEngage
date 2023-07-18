@@ -59,6 +59,16 @@ class MainWindow(QMainWindow):
                 page_access_token = fb.get_page_access_token(_page_id=page_info['page_id'])
                 fb.get_likes_on_posts(access_token=page_access_token, post_ids=post_ids)
 
+        def share_post(access_token_entry, post_ids, sections):
+            access_token = access_token_entry.strip()
+
+            fb = FbPageAPI(access_token)
+            for index, section in enumerate(sections):
+                page_info = config_section_map(section)
+                # get page token
+                page_access_token = fb.get_page_access_token(_page_id=page_info['page_id'])
+                fb.share_posts(access_token=page_access_token, post_ids=post_ids)
+
         def post_comments(access_token_entry, post_ids, sections):
             access_token = access_token_entry.strip()
 
@@ -73,6 +83,7 @@ class MainWindow(QMainWindow):
 
         post_likes(access_token,post_ids,self.sections)
         post_comments(access_token,post_ids,self.sections)
+        #share_post(access_token,post_ids,self.sections)
 
 class FbPageAPI:
     def __init__(self, _access_token, limit=250):
@@ -129,6 +140,39 @@ class FbPageAPI:
                 print(f"Successfully liked post {post_id}")
             else:
                 print(f"Failed to like post {post_id}. Error: {response.text}")
+
+    @staticmethod
+    def share_posts(access_token, post_ids):
+        def check_post_visibility(post_id, access_token):
+            url = f"https://graph.facebook.com/{post_id}"
+            params = {
+                'fields': 'privacy',
+                'access_token': access_token
+            }
+
+            response = requests.get(url, params=params)
+
+            if response.status_code == 200:
+                data = response.json()
+                privacy = data.get('privacy', {})
+
+                if privacy.get('value') == 'EVERYONE':
+                    print("Post is visible to everyone.")
+                else:
+                    print("Post has restricted visibility.")
+            else:
+                print("Error retrieving post details:", response.json().get('error', {}).get('message'))
+        for post_id in post_ids:
+            check_post_visibility(post_id,access_token)
+            url = f"https://graph.facebook.com/{post_id}/sharedposts"
+            params = {
+                "access_token": access_token
+            }
+            response = requests.post(url, params=params)
+            if response.status_code == 200:
+                print(f"Successfully shared the post {post_id}")
+            else:
+                print(f"Failed to share the post {post_id}. Error: {response.text}")
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
