@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
 
         post_likes(access_token,post_ids,self.sections)
         post_comments(access_token,post_ids,self.sections)
-        #share_post(access_token,post_ids,self.sections)
+        share_post(access_token,post_ids,self.sections)
 
 class FbPageAPI:
     def __init__(self, _access_token, limit=250):
@@ -143,36 +143,20 @@ class FbPageAPI:
 
     @staticmethod
     def share_posts(access_token, post_ids):
-        def check_post_visibility(post_id, access_token):
-            url = f"https://graph.facebook.com/{post_id}"
-            params = {
-                'fields': 'privacy',
-                'access_token': access_token
-            }
-
-            response = requests.get(url, params=params)
-
-            if response.status_code == 200:
-                data = response.json()
-                privacy = data.get('privacy', {})
-
-                if privacy.get('value') == 'EVERYONE':
-                    print("Post is visible to everyone.")
-                else:
-                    print("Post has restricted visibility.")
-            else:
-                print("Error retrieving post details:", response.json().get('error', {}).get('message'))
         for post_id in post_ids:
-            check_post_visibility(post_id,access_token)
-            url = f"https://graph.facebook.com/{post_id}/sharedposts"
-            params = {
-                "access_token": access_token
+            endpoint = f'/me/feed'
+            # Create the post data
+            data = {
+                'link': f'https://www.facebook.com/{post_id}'
             }
-            response = requests.post(url, params=params)
+            # Make the POST request to share the post
+            url = f'https://graph.facebook.com/v13.0{endpoint}?access_token={access_token}'
+            response = requests.post(url, data=data)
+            # Check the response
             if response.status_code == 200:
-                print(f"Successfully shared the post {post_id}")
+                print('Post shared successfully!')
             else:
-                print(f"Failed to share the post {post_id}. Error: {response.text}")
+                print('Error sharing post:', response.json())
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
